@@ -1143,7 +1143,7 @@ void Control_SendThread(HumanoidController& controller) {
                     printf("right_arm[%d]:%f\n",i,RightcurAngle[i]);
                     std::this_thread::sleep_for(std::chrono::seconds(10));
                 }    
-            }                    start_control_send = true;
+            }
             
             controller.RTmultidoftrajplanModeWithDynaKpKdTorquecmd(RightcurAngle_arm, curVel_arm, curAcc_arm, Kp_stand, Kd_stand, curVel, RIGHTARM);
             // controller.RTmultidoftrajplanModecmd(LeftcurAngle_arm, curVel_arm, curAcc_arm, LEFTARM);
