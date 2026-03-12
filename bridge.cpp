@@ -35,8 +35,8 @@ bool promptPrinted = false;
 
 int32_t Kp_walk[7] = {70,70,78,105,31,31,0};
 int32_t Kd_walk[7] = {307,307,345,460,138,138,0};
-int32_t Kp_waist[7] = {0,0,140,0,0,0, 0};
-int32_t Kd_waist[7] = {0,0,306,0,0,0,0};
+int32_t Kp_waist[7] = {0,0,105,0,0,0, 0};
+int32_t Kd_waist[7] = {0,0,460,0,0,0,0};
 int32_t Kp_stand[7] = {1000,1000,1000,1000,1000,1000, 0};
 int32_t Kd_stand[7] = {1000,1000,1000,1000,1000,1000, 0}; 
 // int32_t Kp_arm_l[7] = {50,800,800,800,800,0, 0};
@@ -739,6 +739,7 @@ void policyUpdateThread(HumanoidController& controller, torch::jit::script::Modu
             {
                 dof_pos_obs[i]=dof_pos[usd2urdf[i]];
             }
+            dof_pos_obs[12]=-dof_pos_obs[12];
             torch::Tensor dof_pos_tensor = torch::from_blob(dof_pos_obs.data(), {1, 27});
             inputs.push_back(dof_pos_tensor);
             inputs_history.push_back(dof_pos);
@@ -750,6 +751,7 @@ void policyUpdateThread(HumanoidController& controller, torch::jit::script::Modu
             {
                 dof_vel_obs[i]=dof_vel[usd2urdf[i]];
             }
+            dof_vel_obs[12]=-dof_vel_obs[12];
             torch::Tensor dof_vel_tensor = torch::from_blob(dof_vel_obs.data(), {1, 27});
             inputs.push_back(dof_vel_tensor);
             inputs_history.push_back(dof_vel);
@@ -951,6 +953,8 @@ void controlSendThread(HumanoidController& controller) {
             {
                 target_dof_pos[usd2urdf[i]]=actions[i] * action_scale; 
             }
+            target_dof_pos[12]=-target_dof_pos[12];
+
             for (int i = 0; i < 6; i++) {
                 // tau = Kp[i] * (target_dof_pos[i] + default_angle[i] - dof_pos[i]) + Kd[i] * (0 - dof_vel[i]);
                 // current_tau[i] = tau; // 记录当前 tau 值
@@ -1139,7 +1143,7 @@ void Control_SendThread(HumanoidController& controller) {
                     printf("right_arm[%d]:%f\n",i,RightcurAngle[i]);
                     std::this_thread::sleep_for(std::chrono::seconds(10));
                 }    
-            }
+            }                    start_control_send = true;
             
             controller.RTmultidoftrajplanModeWithDynaKpKdTorquecmd(RightcurAngle_arm, curVel_arm, curAcc_arm, Kp_stand, Kd_stand, curVel, RIGHTARM);
             // controller.RTmultidoftrajplanModecmd(LeftcurAngle_arm, curVel_arm, curAcc_arm, LEFTARM);
@@ -1201,7 +1205,6 @@ void keyboardInputThread(HumanoidController& controller) {
                 if (input == ' ') { // 检测空格键
                     std::cout << "Space pressed. Starting model inference...\n";
                     start_model_inference = true; // 设置标志
-                    start_control_send = true;
                     // break; // 退出线程
                 }
                 if (input == 'h' || input == 'H') { // 检测H键
@@ -1340,7 +1343,7 @@ int main(int argc, char *argv[])
     // 加载策略模型
     torch::jit::script::Module policy_model;
     try {
-        policy_model = torch::jit::load("/home/gy/slrBridge/src/policy_syb/policy.pt");
+        policy_model = torch::jit::load("/home/gy/slrBridge/src/policy_tang/policy.pt");
         std::cout << "Policy model loaded successfully.\n";
     } catch (const c10::Error &e) {
         std::cerr << "Error loading the policy model\n";
